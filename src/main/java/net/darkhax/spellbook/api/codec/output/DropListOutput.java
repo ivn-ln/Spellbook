@@ -4,9 +4,12 @@ import com.hypixel.hytale.codec.Codec;
 import com.hypixel.hytale.codec.KeyedCodec;
 import com.hypixel.hytale.codec.builder.BuilderCodec;
 import com.hypixel.hytale.codec.validation.Validators;
+import com.hypixel.hytale.protocol.Rangef;
 import com.hypixel.hytale.server.core.asset.type.item.config.ItemDropList;
+import com.hypixel.hytale.server.core.codec.ProtocolCodecs;
 import com.hypixel.hytale.server.core.inventory.ItemStack;
 import com.hypixel.hytale.server.core.modules.item.ItemModule;
+import net.darkhax.spellbook.api.util.MathsHelper;
 
 import javax.annotation.Nonnull;
 import java.util.List;
@@ -18,7 +21,10 @@ import java.util.function.Consumer;
  * {
  *   "Type": "DropList",
  *   "DropList": "Drop_Cow",
- *   "Count": 3
+ *   "Rolls": {
+ *     "Min": 1,
+ *     "Max": 3
+ *   }
  * }
  * </code></pre>
  */
@@ -32,9 +38,8 @@ public class DropListOutput implements ItemOutput {
             .addValidator(Validators.nonNull())
             .addValidator(ItemDropList.VALIDATOR_CACHE.getValidator())
             .add()
-            .append(new KeyedCodec<>("Count", Codec.INTEGER), (i, v) -> i.count = v, i -> i.count)
+            .append(new KeyedCodec<>("Rolls", ProtocolCodecs.RANGEF), (i, v) -> i.count = v, i -> i.count)
             .documentation("The amount of times to drop the loot. Defaults to 1.")
-            .addValidator(Validators.greaterThan(0))
             .add()
             .build();
 
@@ -45,13 +50,13 @@ public class DropListOutput implements ItemOutput {
 
     @Nonnull
     protected String droplistId = "Drops_Plant_Crop_Wheat_StageFinal_Harvest";
-    protected int count = 1;
+    protected Rangef count = new Rangef(1, 1);
 
     public String dropListId() {
         return this.droplistId;
     }
 
-    public int count() {
+    public Rangef rolls() {
         return this.count;
     }
 
@@ -59,7 +64,8 @@ public class DropListOutput implements ItemOutput {
     public void output(Consumer<ItemStack> consumer) {
         final ItemDropList dropList = ItemDropList.getAssetMap().getAsset(this.droplistId);
         if (dropList != null) {
-            for (int roll = 0; roll < this.count; roll++) {
+            final int rolls = MathsHelper.fromRange(count);
+            for (int roll = 0; roll < rolls; roll++) {
                 final List<ItemStack> drops = ItemModule.get().getRandomItemDrops(droplistId);
                 for (ItemStack stack : drops) {
                     if (stack != null && !stack.isEmpty()) {

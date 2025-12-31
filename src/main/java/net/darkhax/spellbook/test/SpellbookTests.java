@@ -1,6 +1,7 @@
 package net.darkhax.spellbook.test;
 
 import com.hypixel.hytale.codec.Codec;
+import com.hypixel.hytale.protocol.Rangef;
 import com.hypixel.hytale.protocol.Rotation;
 import com.hypixel.hytale.server.core.universe.world.connectedblocks.ConnectedBlockPatternRule.AdjacentSide;
 import net.darkhax.spellbook.api.codec.output.DropListOutput;
@@ -58,17 +59,17 @@ public class SpellbookTests {
 
     @Test
     public void testItemOutputCodec() {
-        final IdOutput idOutput = assertType(IdOutput.class, decode(ItemOutput.CODEC, "{\"Type\":\"Item\",\"ItemId\":\"Ingredient_Life_Essence\",\"Quantity\":5}"));
+        final IdOutput idOutput = assertType(IdOutput.class, decode(ItemOutput.CODEC, "{\"Type\":\"Item\",\"ItemId\":\"Ingredient_Life_Essence\",\"Amount\":{\"Min\":3,\"Max\":3}}"));
         assertEquals("Ingredient_Life_Essence", idOutput.itemId());
-        assertEquals(5, idOutput.amount());
+        assertEquals(new Rangef(3, 3), idOutput.amount());
         idOutput.output(s -> {
-            assertEquals(5, s.getQuantity());
+            assertEquals(3, s.getQuantity());
             assertEquals("Ingredient_Life_Essence", s.getItemId());
         });
 
-        final DropListOutput dropOut = assertType(DropListOutput.class, decode(ItemOutput.CODEC, "{\"Type\":\"DropList\",\"DropList\":\"Drop_Cow\",\"Count\":3}"));
+        final DropListOutput dropOut = assertType(DropListOutput.class, decode(ItemOutput.CODEC, "{\"Type\":\"DropList\",\"DropList\":\"Drop_Cow\",\"Rolls\":{\"Min\":3,\"Max\":3}}"));
         assertEquals("Drop_Cow", dropOut.dropListId());
-        assertEquals(3, dropOut.count());
+        assertEquals(new Rangef(3, 3), dropOut.rolls());
         assertEquals(6, dropOut.outputList().size());
     }
 

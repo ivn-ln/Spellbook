@@ -1,7 +1,20 @@
 package net.darkhax.spellbook.api.util;
 
+import com.hypixel.hytale.component.AddReason;
+import com.hypixel.hytale.component.CommandBuffer;
+import com.hypixel.hytale.component.Holder;
+import com.hypixel.hytale.component.Store;
+import com.hypixel.hytale.math.vector.Vector3d;
+import com.hypixel.hytale.math.vector.Vector3f;
 import com.hypixel.hytale.protocol.Rotation;
+import com.hypixel.hytale.server.core.inventory.ItemStack;
+import com.hypixel.hytale.server.core.modules.entity.item.ItemComponent;
+import com.hypixel.hytale.server.core.universe.world.World;
 import com.hypixel.hytale.server.core.universe.world.connectedblocks.ConnectedBlockPatternRule.AdjacentSide;
+import com.hypixel.hytale.server.core.universe.world.storage.EntityStore;
+
+import javax.annotation.Nonnull;
+import java.util.List;
 
 public class WorldHelper {
 
@@ -14,11 +27,7 @@ public class WorldHelper {
      */
     public static AdjacentSide rotate(AdjacentSide side, int rotation) {
         return switch (side) {
-            case North, East, South, West -> {
-                int horizontalIndex = side.ordinal() - 2;
-                int rotatedIndex = Math.floorMod(horizontalIndex - rotation, 4);
-                yield side(rotatedIndex + 2);
-            }
+            case North, East, South, West -> side(Math.floorMod((side.ordinal() - 2) - rotation, 4) + 2);
             case Up, Down -> side;
         };
     }
@@ -58,5 +67,20 @@ public class WorldHelper {
             throw new IllegalArgumentException("Rotation ordinal must be between 0 and 3. Received '" + ordinal + "'!");
         }
         return Rotation.values()[ordinal];
+    }
+
+    public static void dropItems(World world, List<ItemStack> drops, Vector3d position) {
+        final Store<EntityStore> store = world.getEntityStore().getStore();
+        if (store != null && !drops.isEmpty()) {
+            Holder<EntityStore>[] dropHolder = ItemComponent.generateItemDrops(store, drops, position.clone(), Vector3f.ZERO.clone());
+            store.addEntities(dropHolder, AddReason.SPAWN);
+        }
+    }
+
+    public static void dropItems(List<ItemStack> drops, Vector3d position, @Nonnull Store<EntityStore> store, @Nonnull CommandBuffer<EntityStore> commandBuffer) {
+        if (!drops.isEmpty()) {
+            Holder<EntityStore>[] dropHolder = ItemComponent.generateItemDrops(store, drops, position.clone(), Vector3f.ZERO.clone());
+            commandBuffer.addEntities(dropHolder, AddReason.SPAWN);
+        }
     }
 }

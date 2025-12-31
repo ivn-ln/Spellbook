@@ -4,8 +4,11 @@ import com.hypixel.hytale.codec.Codec;
 import com.hypixel.hytale.codec.KeyedCodec;
 import com.hypixel.hytale.codec.builder.BuilderCodec;
 import com.hypixel.hytale.codec.validation.Validators;
+import com.hypixel.hytale.protocol.Rangef;
 import com.hypixel.hytale.server.core.asset.type.item.config.Item;
+import com.hypixel.hytale.server.core.codec.ProtocolCodecs;
 import com.hypixel.hytale.server.core.inventory.ItemStack;
+import net.darkhax.spellbook.api.util.MathsHelper;
 import org.bson.BsonDocument;
 
 import javax.annotation.Nonnull;
@@ -18,7 +21,10 @@ import java.util.function.Consumer;
  * {
  *   "Type": "Item",
  *   "ItemId": "Ingredient_Life_Essence",
- *   "Quantity": 5
+ *   "Amount": {
+ *     "Min": 1,
+ *     "Max": 3
+ *   }
  * }
  * </code></pre>
  */
@@ -32,9 +38,8 @@ public class IdOutput implements ItemOutput {
             .addValidator(Validators.nonNull())
             .addValidator(Item.VALIDATOR_CACHE.getValidator())
             .add()
-            .append(new KeyedCodec<>("Quantity", Codec.INTEGER), (i, v) -> i.amount = v, i -> i.amount)
+            .append(new KeyedCodec<>("Amount", ProtocolCodecs.RANGEF), (i, v) -> i.amount = v, i -> i.amount)
             .documentation("The amount of the item to produce. Defaults to 1.")
-            .addValidator(Validators.greaterThan(0))
             .add()
             .append(new KeyedCodec<>("Metadata", Codec.BSON_DOCUMENT), (i, v) -> i.metadata = v, i -> i.metadata)
             .documentation("Optional metadata for the item.")
@@ -43,7 +48,7 @@ public class IdOutput implements ItemOutput {
 
     @Nonnull
     protected String itemId = "Empty";
-    protected int amount = 1;
+    protected Rangef amount = new Rangef(1, 1);
     @Nullable
     protected BsonDocument metadata = BsonDocument.parse("{}");
 
@@ -51,7 +56,7 @@ public class IdOutput implements ItemOutput {
         return this.itemId;
     }
 
-    public int amount() {
+    public Rangef amount() {
         return this.amount;
     }
 
@@ -63,7 +68,7 @@ public class IdOutput implements ItemOutput {
     @Override
     public void output(Consumer<ItemStack> consumer) {
         if (!"Empty".equals(this.itemId)) {
-            consumer.accept(new ItemStack(this.itemId, this.amount, this.metadata));
+            consumer.accept(new ItemStack(this.itemId, MathsHelper.fromRange(this.amount), this.metadata));
         }
     }
 }

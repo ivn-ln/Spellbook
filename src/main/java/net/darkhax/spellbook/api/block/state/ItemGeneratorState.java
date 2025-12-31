@@ -11,12 +11,11 @@ import com.hypixel.hytale.math.util.HashUtil;
 import com.hypixel.hytale.math.vector.Vector3i;
 import com.hypixel.hytale.protocol.BlockPosition;
 import com.hypixel.hytale.protocol.Rangef;
-import com.hypixel.hytale.protocol.Rotation;
-import com.hypixel.hytale.protocol.RotationDirection;
 import com.hypixel.hytale.server.core.asset.type.blocktype.config.BlockType;
 import com.hypixel.hytale.server.core.asset.type.blocktype.config.StateData;
 import com.hypixel.hytale.server.core.codec.ProtocolCodecs;
 import com.hypixel.hytale.server.core.inventory.ItemStack;
+import com.hypixel.hytale.server.core.inventory.transaction.ItemStackTransaction;
 import com.hypixel.hytale.server.core.modules.time.WorldTimeResource;
 import com.hypixel.hytale.server.core.universe.world.World;
 import com.hypixel.hytale.server.core.universe.world.chunk.WorldChunk;
@@ -64,15 +63,20 @@ public class ItemGeneratorState extends BlockState implements TickableBlockState
             final Vector3i generatorPos = this.getBlockPosition();
             final BlockPosition pos = world.getBaseBlock(new BlockPosition(generatorPos.x, generatorPos.y, generatorPos.z));
             for (AdjacentSide side : this.data.exportFaces) {
+                boolean exportedItems = false;
                 final Vector3i exportPos = new Vector3i(pos.x, pos.y, pos.z).add(WorldHelper.rotate(side, this.getRotationIndex()).relativePosition);
                 final WorldChunk chunk = world.getChunkIfInMemory(ChunkUtil.indexChunkFromBlock(exportPos.x, exportPos.z));
-                if (chunk != null) {
-                    final BlockState state = chunk.getState(exportPos.x, exportPos.y, exportPos.z);
-                    if (state instanceof ItemContainerState containerState) {
-                        for (ItemStack stack : this.data.output.outputList()) {
-                            containerState.getItemContainer().addItemStack(stack);
+                if (chunk != null && chunk.getState(exportPos.x, exportPos.y, exportPos.z) instanceof ItemContainerState containerState) {
+                    for (ItemStack stack : this.data.output.outputList()) {
+                        final ItemStackTransaction transaction = containerState.getItemContainer().addItemStack(stack);
+                        final ItemStack remainder = transaction.getRemainder();
+                        if (transaction.succeeded() && (remainder == null || remainder.isEmpty())) {
+                            exportedItems = true;
                         }
                     }
+                }
+                if (this.data.exportOnce && exportedItems) {
+                    break;
                 }
             }
             this.reset(currentTime);
@@ -95,12 +99,8 @@ public class ItemGeneratorState extends BlockState implements TickableBlockState
                 .documentation("The adjacent faces to attempt exporting into.")
                 .add()
 
-                .appendInherited(new KeyedCodec<>("ApplyRotation", Codec.BOOLEAN), (i, v) -> i.rotatable = v, i -> i.rotatable, (o, p) -> o.rotatable = p.rotatable)
-                .documentation("If the block can be rotated, should that rotation be accounted for when exporting?")
-                .add()
-
-                .appendInherited(new KeyedCodec<>("DropOverflow", Codec.BOOLEAN), (i, v) -> i.dropOverflow = v, i -> i.dropOverflow, (o, p) -> o.dropOverflow = p.dropOverflow )
-                .documentation("If the item could not be inserted into any inventories, should it just be dropped into the world?")
+                .appendInherited(new KeyedCodec<>("ExportOnce", Codec.BOOLEAN), (i, v) -> i.exportOnce = v, i -> i.exportOnce, (o, p) -> o.exportOnce = p.exportOnce)
+                .documentation("Should the generator only export items to the first valid side that accepts items?")
                 .add()
 
                 .appendInherited(new KeyedCodec<>("Cooldown", ProtocolCodecs.RANGEF), (i, v) -> i.duration = v, i -> i.duration, (o, p) -> o.duration = p.duration)
@@ -110,8 +110,7 @@ public class ItemGeneratorState extends BlockState implements TickableBlockState
 
         private ItemOutput output = new IdOutput();
         private AdjacentSide[] exportFaces = new AdjacentSide[0];
-        private boolean rotatable = true;
-        private boolean dropOverflow = true;
+        private boolean exportOnce = true;
         protected Rangef duration;
     }
 }

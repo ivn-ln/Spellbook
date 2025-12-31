@@ -10,7 +10,6 @@
     "Textures": [
       {
         "All": "BlockTextures/Darkhax_Spellbook_Test.png",
-        "Weight": 1,
         "North": "BlockTextures/Darkhax_Spellbook_Test_Green.png"
       }
     ],
@@ -19,30 +18,21 @@
       "Output": {
         "Type": "Item",
         "ItemId": "Soil_Dirt",
-        "Quantity": 1
+        "Amount": {
+          "Min": 1,
+          "Max": 1
+        }
       },
       "ExportFaces": [
-        "North"
+        "North",
+        "South"
       ],
       "Cooldown": {
         "Min": 100,
         "Max": 100
       },
-      "DropOverflow": false
+      "ExportOnce": false
     },
-    "VariantRotation": "NESW",
-    "FlipType": "Symmetric"
-  },
-  "IconProperties": {
-    "Scale": 0.6,
-    "Rotation": [
-      0,
-      197,
-      335
-    ],
-    "Translation": [
-      6,
-      -15
-    ]
+    "VariantRotation": "NESW"
   }
 }
